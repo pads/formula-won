@@ -24,13 +24,16 @@ function App() {
     cotaConfig.shortName
   )
 
-  const { session, locations } = useReplayLocations(
+  const { session: replaySession, locations } = useReplayLocations(
     f1Data,
     replayCandidates,
     replayCandidates.length > 0
   )
 
-  const { drivers } = useDrivers(f1Data, session?.session_key)
+  const { drivers, isError: driversFailed } = useDrivers(f1Data, replaySession?.session_key)
+
+  // Without driver metadata there are no dots, so treat it like any other API failure
+  const session = driversFailed ? undefined : replaySession
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4">

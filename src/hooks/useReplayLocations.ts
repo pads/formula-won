@@ -5,6 +5,7 @@ import type { Location, Session } from '../types'
 import {
   REPLAY_CHUNK_MS,
   getChunkStart,
+  getReplayCycle,
   getReplayTime,
   mergeLocations,
   pickLocationsAt,
@@ -41,27 +42,31 @@ export function useReplayLocations(
   enabled: boolean
 ): UseReplayLocationsResult {
   const queryClient = useQueryClient()
-  const [candidateIndex, setCandidateIndex] = useState(0)
-  const [elapsedMs, setElapsedMs] = useState(0)
+  // Races whose opening window had no data; the replay moves on to the next candidate
+  const [skippedKeys, setSkippedKeys] = useState<number[]>([])
+  const [clock, setClock] = useState<{ sessionKey?: number; elapsedMs: number }>({
+    elapsedMs: 0,
+  })
 
-  const session = enabled ? candidates[candidateIndex] : undefined
+  const session = enabled
+    ? candidates.find((candidate) => !skippedKeys.includes(candidate.session_key))
+    : undefined
   const sessionKey = session?.session_key
-
-  // Restart the clock whenever the replayed race changes
-  useEffect(() => {
-    setElapsedMs(0)
-  }, [sessionKey])
 
   useEffect(() => {
     if (sessionKey === undefined) return
     const startedAt = Date.now()
     const id = setInterval(() => {
-      setElapsedMs(Date.now() - startedAt)
+      setClock({ sessionKey, elapsedMs: Date.now() - startedAt })
     }, TICK_INTERVAL)
     return () => {
       clearInterval(id)
     }
   }, [sessionKey])
+
+  // Ignore a clock left over from a previous race
+  const elapsedMs = clock.sessionKey === sessionKey ? clock.elapsedMs : 0
+  const cycle = session ? getReplayCycle(session, elapsedMs) : 0
 
   const replayTime = session ? getReplayTime(session, elapsedMs) : undefined
   const chunkStart = session && replayTime ? getChunkStart(session, replayTime) : undefined
@@ -84,10 +89,10 @@ export function useReplayLocations(
   // Fall back to an earlier race when the opening chunk has no data
   const isOpeningChunk = session !== undefined && chunkMs === new Date(session.date_start).getTime()
   useEffect(() => {
-    if (isOpeningChunk && chunk?.length === 0 && candidateIndex + 1 < candidates.length) {
-      setCandidateIndex(candidateIndex + 1)
+    if (sessionKey !== undefined && isOpeningChunk && chunk?.length === 0) {
+      setSkippedKeys((keys) => [...keys, sessionKey])
     }
-  }, [isOpeningChunk, chunk, candidateIndex, candidates.length])
+  }, [sessionKey, isOpeningChunk, chunk])
 
   // Warm the next chunk so playback does not stall at the boundary
   useEffect(() => {
@@ -110,20 +115,19 @@ export function useReplayLocations(
   )
 
   // Cars keep their last known location across chunk boundaries and while a chunk
-  // loads, instead of dropping back to the pit lane.
-  const [carried, setCarried] = useState<{ sessionKey?: number; locations: Location[] }>({
+  // loads, instead of dropping back to the pit lane. A new race or a loop back to
+  // lights out starts fresh, since the old locations are in the replay's future.
+  const passId = `${String(sessionKey)}:${String(cycle)}`
+  const [carried, setCarried] = useState<{ passId?: string; locations: Location[] }>({
     locations: [],
   })
   useEffect(() => {
     setCarried((prev) => ({
-      sessionKey,
-      locations: mergeLocations(prev.sessionKey === sessionKey ? prev.locations : [], picked),
+      passId,
+      locations: mergeLocations(prev.passId === passId ? prev.locations : [], picked),
     }))
-  }, [sessionKey, picked])
-  const locations = mergeLocations(
-    carried.sessionKey === sessionKey ? carried.locations : [],
-    picked
-  )
+  }, [passId, picked])
+  const locations = mergeLocations(carried.passId === passId ? carried.locations : [], picked)
 
   // A failed fetch (e.g. the API rejecting us) shows the empty state, not a stuck replay
   if (isError) return { session: undefined, locations: [], isLoading: false }

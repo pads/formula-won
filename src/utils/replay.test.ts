@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   getReplayTime,
   getChunkStart,
+  getReplayCycle,
   pickLocationsAt,
   mergeLocations,
   REPLAY_CHUNK_MS,
@@ -93,5 +94,18 @@ describe('mergeLocations', () => {
   it('returns the current locations when there are no previous ones', () => {
     const current = [loc(1, '2024-10-20T19:00:00Z', 10)]
     expect(mergeLocations([], current)).toEqual(current)
+  })
+})
+
+describe('getReplayCycle', () => {
+  const twoHours = 2 * 60 * 60 * 1000
+
+  it('is 0 during the first pass', () => {
+    expect(getReplayCycle(session, twoHours - 1)).toBe(0)
+  })
+
+  it('increments each time the replay loops', () => {
+    expect(getReplayCycle(session, twoHours)).toBe(1)
+    expect(getReplayCycle(session, 2 * twoHours + 5_000)).toBe(2)
   })
 })

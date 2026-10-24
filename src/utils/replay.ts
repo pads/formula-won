@@ -14,6 +14,13 @@ export function getReplayTime(session: Session, elapsedMs: number): Date {
   return new Date(start + (elapsedMs % duration))
 }
 
+/** How many times the replay has looped back to lights out (0 on the first pass). */
+export function getReplayCycle(session: Session, elapsedMs: number): number {
+  const duration = new Date(session.date_end).getTime() - new Date(session.date_start).getTime()
+  if (duration <= 0) return 0
+  return Math.floor(elapsedMs / duration)
+}
+
 /** Start of the fixed-size fetch window containing the given time. */
 export function getChunkStart(session: Session, time: Date): Date {
   const start = new Date(session.date_start).getTime()

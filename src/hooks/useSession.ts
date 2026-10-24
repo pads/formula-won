@@ -6,7 +6,7 @@ import { findCurrentSession, findReplayCandidates } from '../utils/session'
 export interface UseSessionResult {
   /** Whether any session is currently live (the API rejects us while one is) */
   isLive: boolean
-  /** Finished races at the circuit, newest first. Empty while a session is live. */
+  /** Finished races at the circuit, newest first. Empty while a session is live or the fetch failed. */
   replayCandidates: Session[]
   /** Whether the initial fetch is loading */
   isLoading: boolean
@@ -42,7 +42,9 @@ export function useSession(
   })
 
   const isLive = findCurrentSession(sessions, now) !== undefined
-  const replayCandidates = isLive ? [] : findReplayCandidates(sessions, circuitShortName, now)
+  // After a failed refetch React Query keeps the old sessions, which may be stale
+  const replayCandidates =
+    isLive || isError ? [] : findReplayCandidates(sessions, circuitShortName, now)
 
   return {
     isLive,

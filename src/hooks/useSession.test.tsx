@@ -35,14 +35,12 @@ function createWrapper() {
 }
 
 describe('useSession', () => {
+  let getSessions: ReturnType<typeof vi.fn>
   let mockDataSource: F1DataSource
 
   beforeEach(() => {
-    mockDataSource = {
-      getSessions: vi.fn(),
-      getLocations: vi.fn(),
-      getDrivers: vi.fn(),
-    }
+    getSessions = vi.fn()
+    mockDataSource = { getSessions, getLocations: vi.fn(), getDrivers: vi.fn() }
   })
 
   afterEach(() => {
@@ -50,109 +48,75 @@ describe('useSession', () => {
   })
 
   it('returns loading state initially', () => {
-    const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
     getSessions.mockImplementation(() => new Promise(() => {})) // Never resolves
 
-    const { result } = renderHook(() => useSession(mockDataSource, new Date()), {
+    const { result } = renderHook(() => useSession(mockDataSource, new Date(), 'Austin'), {
       wrapper: createWrapper(),
     })
 
     expect(result.current.isLoading).toBe(true)
-    expect(result.current.currentSession).toBeUndefined()
+    expect(result.current.replayCandidates).toEqual([])
   })
 
-  it('returns current session when one is live', async () => {
-    const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
+  it('offers finished races at the circuit for replay', async () => {
     getSessions.mockResolvedValue([mockSession])
 
-    const duringRace = new Date('2024-10-20T20:00:00Z')
-    const { result } = renderHook(() => useSession(mockDataSource, duringRace), {
-      wrapper: createWrapper(),
-    })
+    const { result } = renderHook(
+      () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
+      { wrapper: createWrapper() }
+    )
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false)
     })
-
-    expect(result.current.currentSession).toEqual(mockSession)
-    expect(result.current.isLive).toBe(true)
-  })
-
-  it('returns undefined session when none are live', async () => {
-    const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
-    getSessions.mockResolvedValue([mockSession])
-
-    const beforeRace = new Date('2024-10-20T18:00:00Z')
-    const { result } = renderHook(() => useSession(mockDataSource, beforeRace), {
-      wrapper: createWrapper(),
-    })
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false)
-    })
-
-    expect(result.current.currentSession).toBeUndefined()
     expect(result.current.isLive).toBe(false)
+    expect(result.current.replayCandidates).toEqual([mockSession])
+  })
+
+  it('offers nothing to replay while any session is live', async () => {
+    const live = { ...mockSession, session_key: 1, circuit_short_name: 'Monza' }
+    getSessions.mockResolvedValue([
+      mockSession,
+      { ...live, date_start: '2026-10-24T11:00:00Z', date_end: '2026-10-24T13:00:00Z' },
+    ])
+
+    const { result } = renderHook(
+      () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
+      { wrapper: createWrapper() }
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    expect(result.current.isLive).toBe(true)
+    expect(result.current.replayCandidates).toEqual([])
+  })
+
+  it('offers nothing to replay when the circuit has no finished races', async () => {
+    getSessions.mockResolvedValue([])
+
+    const { result } = renderHook(
+      () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
+      { wrapper: createWrapper() }
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    expect(result.current.replayCandidates).toEqual([])
   })
 
   it('returns error state on API failure', async () => {
-    const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
     getSessions.mockRejectedValue(new Error('Network error'))
 
-    const { result } = renderHook(() => useSession(mockDataSource, new Date()), {
+    const { result } = renderHook(() => useSession(mockDataSource, new Date(), 'Austin'), {
       wrapper: createWrapper(),
     })
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true)
     })
-
     expect(result.current.error).toBeInstanceOf(Error)
-  })
-  describe('mode', () => {
-    it('is live when a session is running', async () => {
-      const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
-      getSessions.mockResolvedValue([mockSession])
-
-      const { result } = renderHook(
-        () => useSession(mockDataSource, new Date('2024-10-20T20:00:00Z'), 'Austin'),
-        { wrapper: createWrapper() }
-      )
-
-      await waitFor(() => {
-        expect(result.current.mode).toBe('live')
-      })
-    })
-
-    it('is replay with candidates when only past races exist', async () => {
-      const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
-      getSessions.mockResolvedValue([mockSession])
-
-      const { result } = renderHook(
-        () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
-        { wrapper: createWrapper() }
-      )
-
-      await waitFor(() => {
-        expect(result.current.mode).toBe('replay')
-      })
-      expect(result.current.replayCandidates).toEqual([mockSession])
-      expect(getSessions).toHaveBeenCalledWith({ circuitShortName: 'Austin' })
-    })
-
-    it('is none when there is no live session or past race', async () => {
-      const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
-      getSessions.mockResolvedValue([])
-
-      const { result } = renderHook(
-        () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
-        { wrapper: createWrapper() }
-      )
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false)
-      })
-      expect(result.current.mode).toBe('none')
-    })
+    expect(result.current.replayCandidates).toEqual([])
   })
 })

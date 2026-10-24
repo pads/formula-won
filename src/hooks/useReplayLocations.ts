@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { F1DataSource } from '../api/types'
 import type { Location, Session } from '../types'
-import { REPLAY_CHUNK_MS, getChunkStart, getReplayTime, pickLocationsAt } from '../utils/replay'
+import {
+  REPLAY_CHUNK_MS,
+  getChunkStart,
+  getReplayTime,
+  mergeLocations,
+  pickLocationsAt,
+} from '../utils/replay'
 
 /** How often the replay clock advances (1 second) */
 const TICK_INTERVAL = 1000
 
 export interface UseReplayLocationsResult {
-  /** The race currently being replayed */
+  /** The race currently being replayed; undefined when disabled or the fetch failed */
   session: Session | undefined
   /** Latest driver locations at the current replay time */
   locations: Location[]
@@ -61,7 +67,11 @@ export function useReplayLocations(
   const chunkStart = session && replayTime ? getChunkStart(session, replayTime) : undefined
   const chunkMs = chunkStart?.getTime()
 
-  const { data: chunk, isLoading } = useQuery({
+  const {
+    data: chunk,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['replay-locations', sessionKey, chunkMs],
     queryFn: () => {
       if (!session || !chunkStart) throw new Error('No replay session')
@@ -93,7 +103,30 @@ export function useReplayLocations(
       .catch(() => undefined)
   }, [session, chunkMs, dataSource, queryClient])
 
-  const locations = chunk && replayTime ? pickLocationsAt(chunk, replayTime) : []
+  const replayMs = replayTime?.getTime()
+  const picked = useMemo(
+    () => (chunk && replayMs !== undefined ? pickLocationsAt(chunk, new Date(replayMs)) : []),
+    [chunk, replayMs]
+  )
+
+  // Cars keep their last known location across chunk boundaries and while a chunk
+  // loads, instead of dropping back to the pit lane.
+  const [carried, setCarried] = useState<{ sessionKey?: number; locations: Location[] }>({
+    locations: [],
+  })
+  useEffect(() => {
+    setCarried((prev) => ({
+      sessionKey,
+      locations: mergeLocations(prev.sessionKey === sessionKey ? prev.locations : [], picked),
+    }))
+  }, [sessionKey, picked])
+  const locations = mergeLocations(
+    carried.sessionKey === sessionKey ? carried.locations : [],
+    picked
+  )
+
+  // A failed fetch (e.g. the API rejecting us) shows the empty state, not a stuck replay
+  if (isError) return { session: undefined, locations: [], isLoading: false }
 
   return { session, locations, isLoading }
 }

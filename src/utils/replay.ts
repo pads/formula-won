@@ -36,3 +36,13 @@ export function pickLocationsAt(locations: Location[], time: Date): Location[] {
   }
   return [...latest.values()]
 }
+
+/**
+ * Overlay current locations on the previous ones, per driver.
+ * A driver with no current sample keeps their last known location.
+ */
+export function mergeLocations(previous: Location[], current: Location[]): Location[] {
+  const merged = new Map(previous.map((loc) => [loc.driver_number, loc]))
+  for (const loc of current) merged.set(loc.driver_number, loc)
+  return [...merged.values()]
+}

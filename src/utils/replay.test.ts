@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { getReplayTime, getChunkStart, pickLocationsAt, REPLAY_CHUNK_MS } from './replay'
+import {
+  getReplayTime,
+  getChunkStart,
+  pickLocationsAt,
+  mergeLocations,
+  REPLAY_CHUNK_MS,
+} from './replay'
 import type { Location, Session } from '../types'
 
 const session: Session = {
@@ -69,5 +75,23 @@ describe('pickLocationsAt', () => {
       new Date('2024-10-20T19:00:05Z')
     )
     expect(result).toEqual([])
+  })
+})
+
+describe('mergeLocations', () => {
+  it('keeps the previous location for drivers with no current sample', () => {
+    const result = mergeLocations(
+      [loc(1, '2024-10-20T19:00:59Z', 10), loc(44, '2024-10-20T19:00:59Z', 20)],
+      [loc(1, '2024-10-20T19:01:00Z', 11)]
+    )
+    expect(result.map((l) => [l.driver_number, l.x]).sort()).toEqual([
+      [1, 11],
+      [44, 20],
+    ])
+  })
+
+  it('returns the current locations when there are no previous ones', () => {
+    const current = [loc(1, '2024-10-20T19:00:00Z', 10)]
+    expect(mergeLocations([], current)).toEqual(current)
   })
 })

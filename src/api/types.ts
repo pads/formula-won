@@ -6,7 +6,6 @@ import type { Driver, DriverNumber, Location, Session, SessionKey } from '../typ
 export interface SessionParams {
   year?: number
   circuitShortName?: string
-  sessionName?: string
   sessionKey?: SessionKey
 }
 

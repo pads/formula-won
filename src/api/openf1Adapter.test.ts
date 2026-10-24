@@ -73,19 +73,6 @@ describe('OpenF1Adapter', () => {
     })
   })
 
-  describe('getSessions by session name', () => {
-    it('sends session_name', async () => {
-      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) })
-      const adapter = createOpenF1Adapter('https://api.openf1.org/v1', mockFetch)
-
-      await adapter.getSessions({ circuitShortName: 'Austin', sessionName: 'Race' })
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openf1.org/v1/sessions?circuit_short_name=Austin&session_name=Race'
-      )
-    })
-  })
-
   describe('getLocations', () => {
     it('returns driver location data for a session', async () => {
       const apiResponse = [

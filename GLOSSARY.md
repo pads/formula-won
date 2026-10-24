@@ -29,7 +29,7 @@ A session currently in progress, where start time ≤ now < end time (end is exc
 _Avoid_: Active session, current session
 
 **Replay Session**:
-A finished Race at the loaded circuit that is played back in real time from lights out, looping at the end, when there is no Live Session. Always the most recent year with location data; Sprints are never replayed.
+A finished Race at the loaded circuit that is played back in real time from lights out, looping at the end. It is the only thing the app shows, and it is never shown while a Live Session exists. Always the most recent year with location data; Sprints are never replayed.
 _Avoid_: Historical session, recording
 
 ### Drivers & Position
@@ -66,6 +66,6 @@ _Avoid_: DNF (acceptable in race results context), out
 A unique numeric identifier assigned by OpenF1 to each session during a race weekend. Used to query location and telemetry data for a specific session.
 _Avoid_: Session ID, session number
 
-**Coordinate Bounds**:
-The min/max X/Y values for a circuit, used to normalize location data to a 0-1 range.
-_Avoid_: Track limits, boundaries
+**Track Transform**:
+The affine transform (mirror, rotation, scale, translation) that maps a circuit's OpenF1 Location coordinates onto its track SVG.
+_Avoid_: Coordinate bounds, track limits, normalization

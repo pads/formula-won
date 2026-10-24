@@ -18,9 +18,6 @@ export function createOpenF1Adapter(baseUrl: string, fetchFn: FetchFn = fetch): 
       if (params?.circuitShortName) {
         url.searchParams.set('circuit_short_name', params.circuitShortName)
       }
-      if (params?.sessionName) {
-        url.searchParams.set('session_name', params.sessionName)
-      }
       if (params?.sessionKey !== undefined) {
         url.searchParams.set('session_key', String(params.sessionKey))
       }

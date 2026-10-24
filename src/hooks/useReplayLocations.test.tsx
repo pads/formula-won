@@ -94,4 +94,27 @@ describe('useReplayLocations', () => {
       expect(result.current.locations).toHaveLength(1)
     })
   })
+  it('keeps cars at their last known location while the next chunk loads', async () => {
+    getLocations.mockImplementation((_key: number, _driver: undefined, window: { from: Date }) =>
+      window.from.toISOString() === '2024-10-20T19:00:00.000Z'
+        ? Promise.resolve([{ ...sample, session_key: 2, date: '2024-10-20T19:00:00Z' }])
+        : new Promise(() => {})
+    )
+
+    const { result } = renderHook(() => useReplayLocations(dataSource, [race2024], true), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => {
+      expect(result.current.locations).toHaveLength(1)
+    })
+
+    // Jump the clock past the first chunk; the next chunk never resolves
+    const realNow = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(realNow + 61_000)
+
+    // Let the 1s replay clock tick into the second chunk
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+
+    expect(result.current.locations).toHaveLength(1)
+  })
 })

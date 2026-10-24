@@ -37,7 +37,7 @@ export function Track({ locations, drivers, showPositions }: TrackProps) {
           let position = PIT_LANE_POSITION
 
           if (showPositions && location) {
-            position = transformLocation(location.x, location.y, cotaConfig.bounds, TRACK_VIEWPORT)
+            position = transformLocation(location.x, location.y, cotaConfig.transform)
           }
 
           return (

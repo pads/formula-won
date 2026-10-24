@@ -3,20 +3,11 @@ import type { F1DataSource } from '../api/types'
 import type { Session } from '../types'
 import { findCurrentSession, findReplayCandidates } from '../utils/session'
 
-/** Whether the app is showing a live session, a past race, or nothing */
-export type SessionMode = 'live' | 'replay' | 'none'
-
 export interface UseSessionResult {
-  /** List of all sessions fetched */
-  sessions: Session[]
-  /** The currently live session, if any */
-  currentSession: Session | undefined
-  /** Whether a session is currently live */
+  /** Whether any session is currently live (the API rejects us while one is) */
   isLive: boolean
-  /** Finished races at the circuit, newest first (replay fallbacks) */
+  /** Finished races at the circuit, newest first. Empty while a session is live. */
   replayCandidates: Session[]
-  /** live if a session is running, replay if a past race exists, else none */
-  mode: SessionMode
   /** Whether the initial fetch is loading */
   isLoading: boolean
   /** Whether there was an error fetching sessions */
@@ -26,17 +17,19 @@ export interface UseSessionResult {
 }
 
 /**
- * Hook to fetch sessions and determine which one is currently live.
+ * Hook to fetch sessions and work out which finished race to replay.
+ * Sessions from every circuit are fetched so a live session anywhere is
+ * detected; replay is suppressed while one is running.
  *
  * @param dataSource - F1 data source to fetch sessions from
  * @param now - Current time for live session detection
- * @param circuitShortName - Restrict to this circuit; enables replay candidates
- * @returns Session data and live state
+ * @param circuitShortName - Circuit whose races may be replayed
+ * @returns Live state and replay candidates
  */
 export function useSession(
   dataSource: F1DataSource,
   now: Date,
-  circuitShortName?: string
+  circuitShortName: string
 ): UseSessionResult {
   const {
     data: sessions = [],
@@ -44,23 +37,16 @@ export function useSession(
     isError,
     error,
   } = useQuery({
-    queryKey: ['sessions', circuitShortName],
-    queryFn: () => dataSource.getSessions(circuitShortName ? { circuitShortName } : undefined),
+    queryKey: ['sessions'],
+    queryFn: () => dataSource.getSessions(),
   })
 
-  const currentSession = findCurrentSession(sessions, now)
-  const isLive = currentSession !== undefined
-  const replayCandidates = circuitShortName
-    ? findReplayCandidates(sessions, circuitShortName, now)
-    : []
-  const mode: SessionMode = isLive ? 'live' : replayCandidates.length > 0 ? 'replay' : 'none'
+  const isLive = findCurrentSession(sessions, now) !== undefined
+  const replayCandidates = isLive ? [] : findReplayCandidates(sessions, circuitShortName, now)
 
   return {
-    sessions,
-    currentSession,
     isLive,
     replayCandidates,
-    mode,
     isLoading,
     isError,
     error: error instanceof Error ? error : null,

@@ -11,7 +11,22 @@
       "WebSearch",
       "WebFetch(domain:freesvg.org)",
       "WebFetch(domain:api.openf1.org)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nAdd domain glossary and update Claude settings\n\n- Create GLOSSARY.md with F1 visualization domain terms\n- Define core vocabulary: Circuit, Track, Session, Driver, Location, Standing\n- Add driver states (On Track, In Pits, Retired) and data terms\n- Update Claude settings with research tool permissions\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd domain glossary and update Claude settings\n\n- Create GLOSSARY.md with F1 visualization domain terms\n- Define core vocabulary: Circuit, Track, Session, Driver, Location, Standing\n- Add driver states (On Track, In Pits, Retired) and data terms\n- Update Claude settings with research tool permissions\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(pnpm create:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm config:*)",
+      "Bash(pnpm rebuild:*)",
+      "Bash(PNPM_ALLOW_BUILDS=esbuild pnpm install:*)",
+      "Bash(timeout 5 pnpm dev:*)",
+      "Bash(pnpm vite:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm format:*)",
+      "Bash(pnpm test:run:*)",
+      "Bash(pnpm build:*)",
+      "Bash(echo:*)",
+      "Skill(mattpocock-skills:tdd)",
+      "Bash(pnpm add:*)"
     ]
   },
   "enabledPlugins": {

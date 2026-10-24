@@ -1,10 +1,4 @@
-import type {
-  Driver,
-  DriverNumber,
-  Location,
-  Session,
-  SessionKey,
-} from '../types'
+import type { Driver, DriverNumber, Location, Session, SessionKey } from '../types'
 
 /**
  * Parameters for filtering sessions
@@ -12,7 +6,14 @@ import type {
 export interface SessionParams {
   year?: number
   circuitShortName?: string
+  sessionName?: string
   sessionKey?: SessionKey
+}
+
+/** Time window for location queries (start inclusive, end exclusive) */
+export interface TimeWindow {
+  from: Date
+  to: Date
 }
 
 /**
@@ -28,11 +29,12 @@ export interface F1DataSource {
 
   /**
    * Fetch driver locations for a session.
-   * Optionally filter to a single driver.
+   * Optionally filter to a single driver and/or a time window.
    */
   getLocations(
     sessionKey: SessionKey,
-    driverNumber?: DriverNumber
+    driverNumber?: DriverNumber,
+    window?: TimeWindow
   ): Promise<Location[]>
 
   /**

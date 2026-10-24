@@ -1,30 +1,58 @@
+import { useEffect, useState } from 'react'
 import { f1Data } from './api'
-import { useSession, useLocations, useDrivers } from './hooks'
+import { cotaConfig } from './circuits/cota'
+import { useSession, useLocations, useDrivers, useReplayLocations } from './hooks'
 import { Track } from './components/Track'
 import { SessionHeader } from './components/SessionHeader'
 
 function App() {
-  const now = new Date()
+  // Ticks once a minute so a session going live (or ending) is picked up
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNow(new Date())
+    }, 60_000)
+    return () => {
+      clearInterval(id)
+    }
+  }, [])
 
-  // Fetch session data and determine if live
-  const { currentSession, isLive, isLoading: sessionLoading } = useSession(f1Data, now)
+  // Fetch session data and determine if live, or which race to replay
+  const {
+    currentSession,
+    replayCandidates,
+    mode,
+    isLive,
+    isLoading: sessionLoading,
+  } = useSession(f1Data, now, cotaConfig.shortName)
 
-  // Fetch drivers for the current session
-  const { drivers } = useDrivers(f1Data, currentSession?.session_key)
+  // Replay the latest race when nothing is live
+  const { session: replaySession, locations: replayLocations } = useReplayLocations(
+    f1Data,
+    replayCandidates,
+    mode === 'replay'
+  )
+
+  const session = isLive ? currentSession : replaySession
+
+  // Fetch drivers for whichever session is shown
+  const { drivers } = useDrivers(f1Data, session?.session_key)
 
   // Poll locations during live session
-  const { locations } = useLocations(f1Data, currentSession?.session_key, isLive)
+  const { locations: liveLocations } = useLocations(f1Data, currentSession?.session_key, isLive)
+  const locations = isLive ? liveLocations : replayLocations
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 p-4">
       <SessionHeader
-        session={currentSession}
+        session={session}
         isLive={isLive}
+        isReplay={!isLive && replaySession !== undefined}
         isLoading={sessionLoading}
       />
 
       <main className="mt-8">
-        <Track locations={locations} drivers={drivers} isLive={isLive} />
+        <Track locations={locations} drivers={drivers} showPositions={session !== undefined} />
       </main>
     </div>
   )

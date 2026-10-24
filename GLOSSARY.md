@@ -25,8 +25,12 @@ A timed period of on-track activity. Types include Practice, Qualifying, Sprint,
 _Avoid_: Event, run
 
 **Live Session**:
-A session currently in progress, where start time ≤ now ≤ end time.
+A session currently in progress, where start time ≤ now < end time (end is exclusive).
 _Avoid_: Active session, current session
+
+**Replay Session**:
+A finished Race at the loaded circuit that is played back in real time from lights out, looping at the end, when there is no Live Session. Always the most recent year with location data; Sprints are never replayed.
+_Avoid_: Historical session, recording
 
 ### Drivers & Position
 

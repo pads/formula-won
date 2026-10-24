@@ -109,4 +109,50 @@ describe('useSession', () => {
 
     expect(result.current.error).toBeInstanceOf(Error)
   })
+  describe('mode', () => {
+    it('is live when a session is running', async () => {
+      const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
+      getSessions.mockResolvedValue([mockSession])
+
+      const { result } = renderHook(
+        () => useSession(mockDataSource, new Date('2024-10-20T20:00:00Z'), 'Austin'),
+        { wrapper: createWrapper() }
+      )
+
+      await waitFor(() => {
+        expect(result.current.mode).toBe('live')
+      })
+    })
+
+    it('is replay with candidates when only past races exist', async () => {
+      const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
+      getSessions.mockResolvedValue([mockSession])
+
+      const { result } = renderHook(
+        () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
+        { wrapper: createWrapper() }
+      )
+
+      await waitFor(() => {
+        expect(result.current.mode).toBe('replay')
+      })
+      expect(result.current.replayCandidates).toEqual([mockSession])
+      expect(getSessions).toHaveBeenCalledWith({ circuitShortName: 'Austin' })
+    })
+
+    it('is none when there is no live session or past race', async () => {
+      const getSessions = mockDataSource.getSessions as ReturnType<typeof vi.fn>
+      getSessions.mockResolvedValue([])
+
+      const { result } = renderHook(
+        () => useSession(mockDataSource, new Date('2026-10-24T12:00:00Z'), 'Austin'),
+        { wrapper: createWrapper() }
+      )
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false)
+      })
+      expect(result.current.mode).toBe('none')
+    })
+  })
 })

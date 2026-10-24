@@ -1,5 +1,5 @@
 import type { Driver, DriverNumber, Location, Session, SessionKey } from '../types'
-import type { F1DataSource, SessionParams } from './types'
+import type { F1DataSource, SessionParams, TimeWindow } from './types'
 
 type FetchFn = typeof fetch
 
@@ -7,10 +7,7 @@ type FetchFn = typeof fetch
  * Creates an OpenF1 adapter implementing the F1DataSource port.
  * Accepts a custom fetch function for testing.
  */
-export function createOpenF1Adapter(
-  baseUrl: string,
-  fetchFn: FetchFn = fetch
-): F1DataSource {
+export function createOpenF1Adapter(baseUrl: string, fetchFn: FetchFn = fetch): F1DataSource {
   return {
     async getSessions(params?: SessionParams): Promise<Session[]> {
       const url = new URL(`${baseUrl}/sessions`)
@@ -36,7 +33,8 @@ export function createOpenF1Adapter(
 
     async getLocations(
       sessionKey: SessionKey,
-      driverNumber?: DriverNumber
+      driverNumber?: DriverNumber,
+      window?: TimeWindow
     ): Promise<Location[]> {
       const url = new URL(`${baseUrl}/location`)
       url.searchParams.set('session_key', String(sessionKey))
@@ -45,7 +43,14 @@ export function createOpenF1Adapter(
         url.searchParams.set('driver_number', String(driverNumber))
       }
 
-      const response = await fetchFn(url.toString())
+      // OpenF1 filter operators are part of the key (`date>=...`), so they
+      // cannot go through URLSearchParams, which would encode the `=`.
+      let requestUrl = url.toString()
+      if (window) {
+        requestUrl += `&date>=${window.from.toISOString()}&date<${window.to.toISOString()}`
+      }
+
+      const response = await fetchFn(requestUrl)
 
       if (!response.ok) {
         throw new Error(`OpenF1 API error: ${String(response.status)}`)

@@ -176,4 +176,4 @@ export const COTA_BOUNDS = {
 - Sidebar with standings, gaps, tire info, lap times
 - Additional circuits beyond COTA
 - Light mode theme toggle
-- Historical session replay
+- Historical session replay with user controls (scrubbing, speed). Automatic replay of the latest race when not live is covered by ADR 0001

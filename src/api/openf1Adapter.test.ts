@@ -47,9 +47,7 @@ describe('OpenF1Adapter', () => {
           country_name: 'United States',
         },
       ])
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openf1.org/v1/sessions'
-      )
+      expect(mockFetch).toHaveBeenCalledWith('https://api.openf1.org/v1/sessions')
     })
 
     it('applies filter parameters to the request', async () => {
@@ -115,9 +113,7 @@ describe('OpenF1Adapter', () => {
         session_key: 9617,
         meeting_key: 1234,
       })
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openf1.org/v1/location?session_key=9617'
-      )
+      expect(mockFetch).toHaveBeenCalledWith('https://api.openf1.org/v1/location?session_key=9617')
     })
 
     it('filters by driver number when provided', async () => {
@@ -130,6 +126,22 @@ describe('OpenF1Adapter', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.openf1.org/v1/location?session_key=9617&driver_number=1'
+      )
+    })
+  })
+
+  describe('getLocations with a time window', () => {
+    it('adds date range operators to the request', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve([]) })
+      const adapter = createOpenF1Adapter('https://api.openf1.org/v1', mockFetch)
+
+      await adapter.getLocations(9617, undefined, {
+        from: new Date('2024-10-20T19:00:00Z'),
+        to: new Date('2024-10-20T19:01:00Z'),
+      })
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.openf1.org/v1/location?session_key=9617&date>=2024-10-20T19:00:00.000Z&date<2024-10-20T19:01:00.000Z'
       )
     })
   })
@@ -177,9 +189,7 @@ describe('OpenF1Adapter', () => {
         session_key: 9617,
         meeting_key: 1234,
       })
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openf1.org/v1/drivers?session_key=9617'
-      )
+      expect(mockFetch).toHaveBeenCalledWith('https://api.openf1.org/v1/drivers?session_key=9617')
     })
   })
 })

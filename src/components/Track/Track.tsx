@@ -9,16 +9,16 @@ export interface TrackProps {
   locations: Location[]
   /** Driver info for team colors and names */
   drivers: Driver[]
-  /** Whether the session is currently live */
-  isLive: boolean
+  /** Whether locations are being shown (live or replay) rather than parked in the pits */
+  showPositions: boolean
 }
 
 /**
  * Track component that renders the circuit SVG with driver positions.
- * When live, drivers are positioned based on location data.
- * When not live, drivers are shown in the pit lane.
+ * When showing positions (live or replay), drivers are placed from location data.
+ * Otherwise, drivers are shown in the pit lane.
  */
-export function Track({ locations, drivers, isLive }: TrackProps) {
+export function Track({ locations, drivers, showPositions }: TrackProps) {
   // Create a lookup map for latest location by driver number
   const locationMap = new Map(locations.map((loc) => [loc.driver_number, loc]))
 
@@ -36,13 +36,8 @@ export function Track({ locations, drivers, isLive }: TrackProps) {
           const location = locationMap.get(driver.driver_number)
           let position = PIT_LANE_POSITION
 
-          if (isLive && location) {
-            position = transformLocation(
-              location.x,
-              location.y,
-              cotaConfig.bounds,
-              TRACK_VIEWPORT
-            )
+          if (showPositions && location) {
+            position = transformLocation(location.x, location.y, cotaConfig.transform)
           }
 
           return (
@@ -51,7 +46,7 @@ export function Track({ locations, drivers, isLive }: TrackProps) {
               driver={driver}
               x={position.x}
               y={position.y}
-              isOnTrack={isLive && !!location}
+              isOnTrack={showPositions && !!location}
             />
           )
         })}

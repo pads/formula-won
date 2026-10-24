@@ -58,23 +58,25 @@ export interface Driver {
   meeting_key: MeetingKey
 }
 
-/** Coordinate bounds for normalizing track positions */
-export interface CoordinateBounds {
-  x: { min: number; max: number }
-  y: { min: number; max: number }
+/**
+ * Affine transform from OpenF1 Location coordinates to track SVG coordinates:
+ * svgX = xx * x + xy * y + tx, svgY = yx * x + yy * y + ty.
+ * A plain scale is not enough: the SVG is rotated and mirrored relative to OpenF1.
+ */
+export interface TrackTransform {
+  xx: number
+  xy: number
+  tx: number
+  yx: number
+  yy: number
+  ty: number
 }
 
 /** Circuit configuration */
 export interface CircuitConfig {
   name: string
   shortName: string
-  bounds: CoordinateBounds
-}
-
-/** Normalized position (0-1 range) for SVG rendering */
-export interface NormalizedPosition {
-  x: number
-  y: number
+  transform: TrackTransform
 }
 
 /** Driver state during a session */
